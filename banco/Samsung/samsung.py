@@ -210,6 +210,7 @@ class Lista_sessoes(Resource):
         sala = Salas.query.all()
         responSala = {'id':sala[id].id, 'nome':sala[id].nome, 'senha':sala[id].senha}
         responDoenca = [{'id':i.id, 'nome':i.nome, 'tipo':i.tipo, 'agente':i.agente,'sintomas':[{'nome':s.nome} for s in i.sintomas], 'prevencao':[{'nome':s.nome} for s in i.prevencao] } for i in doenca]
+
         items = randrange(1000, 99999)
 
         response = {'id':items,'sala':responSala,'doencas':responDoenca}
