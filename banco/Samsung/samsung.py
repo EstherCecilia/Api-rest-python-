@@ -184,6 +184,47 @@ class Lista_salas(Resource):
 
 
 
+class Doenca(Resource):
+    def get(self, nome):
+        doenca = Doencas.query.filter_by(nome=nome).first()
+        try:
+            response = {
+                'nome' : doenca.nome,
+                'tipo' : doenca.tipo,
+                'agente' : doenca.agente,
+                'id' : doenca.id
+
+                }
+
+        except AttributeError:
+            response = {'status': 'Error', 'mensagem':'Nome não encontrado'}
+            
+        return response
+    
+    def put(self, nome):
+        doenca = Doencas.query.filter_by(nome=nome).first()
+        dados = request.json
+        if 'nome' in dados:
+            doenca.nome = dados['nome']
+            
+        doenca.save()
+
+        response = {
+                'nome' : doenca.nome,
+                'tipo' : doenca.tipo,
+                'agente' : doenca.agente,
+                'id' : doenca.id
+
+                }
+
+        return response
+    
+    def delete(self, nome):
+        doenca = Doencas.query.filter_by(nome=nome).first()
+        doenca.delete()
+
+        return {'status': 'sucesso', 'mensagem': 'Registro excluido'}
+
 
 
 class Lista_doencas(Resource):
@@ -197,7 +238,7 @@ class Lista_doencas(Resource):
         dados = request.json
         sintoma = Sintomas.query.filter_by(nome=dados['sintoma']).first()
         prevencao = Prevencoes.query.filter_by(nome=dados['prevencao']).first()
-        doenca = Doencas(nome=dados['nome'], agente=dados['agente'], tipo=dados['tipo'], sintomas=sintoma, prevencao=prevencao)
+        doenca = Doencas(nome=dados['nome'], agente=dados['agente'], tipo=dados['tipo'], sintomas=[sintoma], prevencao=[prevencao])
         doenca.save()
         return "Doença inserida com sucesso!"
         
@@ -243,6 +284,7 @@ api.add_resource(Lista_prevencoes, '/prevencao')
 api.add_resource(Sala, '/sala/<string:nome>')
 api.add_resource(Lista_salas, '/sala')
 
+api.add_resource(Doenca, '/doenca/<string:nome>')
 api.add_resource(Lista_doencas, '/doenca')
 
 api.add_resource(Lista_sessoes, '/sessao/<int:id>')
