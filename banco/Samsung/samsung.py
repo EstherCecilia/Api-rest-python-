@@ -301,9 +301,13 @@ class Lista_doencas(Resource):
 
 class Lista_sessoes(Resource):
     def get(self):
-        doenca = Doencas.query.all()
-        #limitar doencas
+        doencas = Doencas.query.all()
         dados = request.json
+        
+        #aux = random.shuffle(doenca)
+        doenca = doencas[:dados['doencas']]
+
+        
         salaCheck = Salas.query.filter_by(nome=dados['nome']).first()
         
         responSala = {'id':salaCheck.id, 'nome':salaCheck.nome, 'senha':salaCheck.senha}
@@ -320,20 +324,6 @@ class Lista_sessoes(Resource):
                 response = {'status':False}                
         return response
     
-
-    def post(self):
-        dados = request.json
-        sala = Salas.query.filter_by(nome=dados['sala']).first()
-        doenca = Doencas.query.filter_by(nome=dados['doenca']).first()
-        sessao = Sessoes(nome=dados['nome'], doenca=doenca, sala=sala)
-        sessao.save()
-        response = {
-            'nome' : sessao.nome,
-            'sala': sessao.sala.nome,
-            'doenca': sessao.doenca.nome,
-            'id':sessao.id
-        }
-        return response
 
 class Home(Resource):
     def get(self):
