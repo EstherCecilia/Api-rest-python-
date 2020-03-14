@@ -303,11 +303,9 @@ class Lista_sessoes(Resource):
     def get(self):
         doencas = Doencas.query.all()
         dados = request.json
-        
-        #aux = random.shuffle(doenca)
+        shuffle(doencas)
         doenca = doencas[:dados['doencas']]
 
-        
         salaCheck = Salas.query.filter_by(nome=dados['nome']).first()
         
         responSala = {'id':salaCheck.id, 'nome':salaCheck.nome, 'senha':salaCheck.senha}
@@ -323,7 +321,52 @@ class Lista_sessoes(Resource):
             else:
                 response = {'status':False}                
         return response
+
+
+class Jogador(Resource):
+
+    def delete(self, nome):
+        jogador = Ranking.query.filter_by(nome=nome).first()
+        jogador.delete()
+
+        return {'status': 'sucesso', 'mensagem': 'Registro excluido'}
+
+
+
+
+
+class Lista_jogadores(Resource):
+    def get(self):
+        dados = request.json
+        jogador = Ranking.query.filter_by(id_sessao=dados['id_sessao']).all()
+        
+        jogador_ordenado = sorted(jogador, key = Ranking.get_pontuacao)
+
+        response = [{'nome':i.nome, 'pontuacao':i.pontuacao} for i in jogador_ordenado]
+        return response
     
+    def post(self):
+        dados = request.json
+        qtn = len(Ranking.query.all())
+
+        ponto = ((1/dados['tempo'])*(1/(qtn+1)))*100
+
+        jogador = Ranking(nome=dados['nome'], tempo=dados['tempo'], id_sessao=dados['id_sessao'], pontuacao=ponto)
+        jogador.save()
+
+        
+        response = {
+                'nome' : jogador.nome,
+                'tempo' : jogador.tempo,
+                'id_sessao' : jogador.id_sessao,
+                'id' : jogador.id,
+                'pontuacao': jogador.pontuacao
+                
+
+            }
+
+        return response
+
 
 class Home(Resource):
     def get(self):
@@ -331,6 +374,9 @@ class Home(Resource):
     
 
 api.add_resource(Home, '/')
+
+api.add_resource(Jogador, '/jogador/<string:nome>')
+api.add_resource(Lista_jogadores, '/jogador')
 
 api.add_resource(Sintoma, '/sintoma/<string:nome>')
 api.add_resource(Lista_sintomas, '/sintoma')

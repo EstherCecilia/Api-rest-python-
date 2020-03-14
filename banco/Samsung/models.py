@@ -1,5 +1,5 @@
 # -*- coding: cp1252 -*-
-from sqlalchemy import Table, create_engine, Column, Integer, String, ForeignKey, Boolean 
+from sqlalchemy import Table, create_engine, Column, Integer, Float, String, ForeignKey, Boolean 
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -122,6 +122,31 @@ class Salas(Base):
         db_session.commit()
 
 
+class Ranking(Base):
+    __tablename__='ranking'
+    id = Column(Integer, primary_key=True)
+    id_sessao = Column(Integer())
+    nome = Column(String(40))
+    tempo = Column(Float())
+    pontuacao = Column(Float())
+    
+
+
+    def __repr__(self):
+        return '<Ranking: {}>'.format(self.nome)
+
+    def get_pontuacao(self):
+        return self.pontuacao
+
+    def save(self):
+        db_session.add(self)
+        db_session.commit()
+
+    def delete(self):
+        db_session.delete(self)
+        db_session.commit()
+
+
 
 
 def init_db():
@@ -130,5 +155,3 @@ def init_db():
 if __name__ == '__main__':
 
     init_db()
-
-
