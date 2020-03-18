@@ -338,36 +338,58 @@ class Lista_jogadores(Resource):
         dados = request.json
         jogador = Ranking.query.filter_by(id_sessao=dados['id_sessao']).all()
         
-        jogador_ordenado = sorted(jogador, key = Ranking.get_pontuacao)
+        jogador_ordenado = sorted(jogador, key = Ranking.get_pontuacao, reverse=True)
 
         response = [{'nome':i.nome, 'pontuacao':i.pontuacao} for i in jogador_ordenado]
         return response
-    
+
+
+    def put(self):
+        dados = request.json
+        pontuac = Ranking.query.filter_by(nome=dados['nome']).filter_by(id_sessao=dados['id_sessao']).first()
+
+
+        try:
+            pergunta = len(Ranking.query.filter_by(perguntadas=dados['pergunta']).all())
+            pontuac.perguntadas = dados['pergunta']
+            pontuac.ordem = pergunta + 1
+            ponti = ((1/dados['tempo'])*(1/(pontuac.ordem)))*100
+            ponto = pontuac.pontuacao + ponti
+            pontuac.pontuacao = ponto
+            pontuac.save()
+
+            response = {
+                'status':True,
+                'nome' : pontuac.nome,
+                'id_sessao' : pontuac.id_sessao,
+                'ordem': pontuac.ordem,
+                'id' : pontuac.id,
+                'pontuacao': pontuac.pontuacao
+                
+
+            }
+
+        except AttributeError:
+            response = {
+                'status':False
+
+            }
+
+        
+        
+
+        return response
+
+        
     def post(self):
         dados = request.json
         pontuac = Ranking.query.filter_by(nome=dados['nome']).filter_by(id_sessao=dados['id_sessao']).first()
 
         
         try:
-            if 'pergunta' in dados:
-                pergunta = len(Ranking.query.filter_by(perguntadas=dados['pergunta']).all())
-                print(pergunta)
-                pontuac.perguntadas = dados['pergunta']
-                pontuac.ordem = pergunta + 1
-            if 'tempo' in dados:
-                ponti = ((1/dados['tempo'])*(1/(pontuac.ordem)))*100
-            else:
-                ponti = 0
-            ponto = pontuac.pontuacao + ponti
-            pontuac.pontuacao = ponto
-            pontuac.save()
-
+            pontuac.nome = dados['nome']
             response = {
-                'nome' : pontuac.nome,
-                'id_sessao' : pontuac.id_sessao,
-                'ordem': pontuac.ordem,
-                'id' : pontuac.id,
-                'pontuacao': pontuac.pontuacao
+                'status':False
                 
 
             }
@@ -381,6 +403,7 @@ class Lista_jogadores(Resource):
             jogador.save()
 
             response = {
+                'status':True,
                 'nome' : jogador.nome,
                 'id_sessao' : jogador.id_sessao,
                 'id' : jogador.id,
