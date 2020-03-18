@@ -289,12 +289,41 @@ class Lista_doencas(Resource):
 
     def post(self):
         dados = request.json
-        print(dados['sintoma'])
-        #sintoma = Sintomas.query.filter_by(nome=dados['sintoma']).first()
-        #print(sintoma)
-        prevencao = Prevencoes.query.filter_by(nome=dados['prevencao']).first()
+        
         doenca = Doencas(nome=dados['nome'], agente=dados['agente'], tipo=dados['tipo'])
         doenca.save()
+        
+        for s in dados['sintoma']:
+            sintoma = Sintomas.query.filter_by(nome=s).first()
+            doenca.sintomas.append(sintoma)
+            doenca.save()
+
+
+        for p in dados['prevencao']:
+            prevencao = Prevencoes.query.filter_by(nome=p).first()
+            doenca.prevencao.append(prevencao)
+            doenca.save()
+
+
+
+        for t in dados['transmicao']:
+            transmicao = Transmicaos.query.filter_by(nome=t).first()
+            doenca.transmicao.append(transmicao)
+            doenca.save()
+
+            
+        response = {
+                'nome' : doenca.nome,
+                'tipo' : doenca.tipo,
+                'agente' : doenca.agente,
+                'sintoma': doenca.sintomas,
+                'prevencao': doenca.prevencao,
+                'transmicao':doenca.transmicao,
+                'id' : doenca.id
+
+                }
+
+
         return "Doença inserida com sucesso!"
         
 
@@ -418,11 +447,16 @@ class Lista_jogadores(Resource):
         return response
 
 
+class Encerra_doenca(Resource):
+    def get(self):
+        Doencas.finaliza()
+        return "Apaga banco de doenças"
+
+
 class Encerra_jogadores(Resource):
     def get(self):
         Ranking.finaliza()
         return "Sessão encerrada"
-
 
 
 class Home(Resource):
@@ -452,6 +486,7 @@ api.add_resource(Lista_salas, '/sala')
 
 api.add_resource(Doenca, '/doenca/<string:nome>')
 api.add_resource(Lista_doencas, '/doenca')
+api.add_resource(Encerra_doenca, '/doenca/encerra')
 
 api.add_resource(Lista_sessoes, '/sessao')
 

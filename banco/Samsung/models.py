@@ -91,6 +91,10 @@ class Doencas(Base):
     def __repr__(self):
         return '{}'.format(self.sintomas)
 
+    def finaliza():
+        Doencas.__table__.drop(engine)
+        Doencas.__table__.create(engine)
+
 
     def save(self):
         db_session.add(self)
