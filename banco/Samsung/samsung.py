@@ -345,12 +345,15 @@ class Lista_jogadores(Resource):
     
     def post(self):
         dados = request.json
-        pontuac = Ranking.query.filter_by(nome=dados['nome']).first()
+        pontuac = Ranking.query.filter_by(nome=dados['nome']).filter_by(id_sessao=dados['id_sessao']).first()
 
         
         try:
-            pergunta = len(Ranking.query.filter_by(perguntadas=dados['pergunta']).first())
-            pontuac.ordem = pergunta + 1
+            if 'pergunta' in dados:
+                pergunta = len(Ranking.query.filter_by(perguntadas=dados['pergunta']).all())
+                print(pergunta)
+                pontuac.perguntadas = dados['pergunta']
+                pontuac.ordem = pergunta + 1
             if 'tempo' in dados:
                 ponti = ((1/dados['tempo'])*(1/(pontuac.ordem)))*100
             else:
@@ -361,7 +364,6 @@ class Lista_jogadores(Resource):
 
             response = {
                 'nome' : pontuac.nome,
-                'tempo' : pontuac.tempo,
                 'id_sessao' : pontuac.id_sessao,
                 'ordem': pontuac.ordem,
                 'id' : pontuac.id,
