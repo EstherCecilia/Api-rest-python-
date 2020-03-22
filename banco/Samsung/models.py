@@ -91,10 +91,6 @@ class Doencas(Base):
     def __repr__(self):
         return '{}'.format(self.sintomas)
 
-    def finaliza():
-        Doencas.__table__.drop(engine)
-        Doencas.__table__.create(engine)
-
 
     def save(self):
         db_session.add(self)
@@ -110,7 +106,6 @@ class Salas(Base):
     id = Column(Integer, primary_key=True)
     nome = Column(String(40))
     senha = Column(String(40))
-    publica = Column(Boolean)
     
 
 
@@ -132,7 +127,7 @@ class Ranking(Base):
     ordem = Column(Integer())
     id_sessao = Column(Integer())
     nome = Column(String(40))
-    tempo = Column(Float())
+    adivinhador = Column(Boolean())
     pontuacao = Column(Float())
     perguntadas = Column(Integer())
     
