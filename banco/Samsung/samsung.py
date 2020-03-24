@@ -4,6 +4,7 @@ from flask_restful import Resource, Api
 import json
 from models import *
 from random import *
+from datetime import *
 
 app = Flask(__name__)
 api = Api(app)
@@ -21,7 +22,7 @@ class Sintoma(Resource):
                 }
 
         except AttributeError:
-            response = {'status': 'Error', 'mensagem':'Nome não encontrado'}
+            response = {'status': False}
             
         return response
     def put(self, nome):
@@ -74,7 +75,7 @@ class Transmicao(Resource):
                 }
 
         except AttributeError:
-            response = {'status': 'Error', 'mensagem':'Nome não encontrado'}
+            response = {'status': False}
             
         return response
     def put(self, nome):
@@ -128,7 +129,7 @@ class Prevencao(Resource):
                 }
 
         except AttributeError:
-            response = {'status': 'Error', 'mensagem':'Nome não encontrado'}
+            response = {'status': False}
             
         return response
     def put(self, nome):
@@ -175,6 +176,7 @@ class Sala(Resource):
         sala = Salas.query.filter_by(nome=nome).first()
         try:
             response = {
+                'status': True,
                 'nome' : sala.nome,
                 'senha' : sala.senha,
                 'id' : sala.id
@@ -182,7 +184,7 @@ class Sala(Resource):
                 }
 
         except AttributeError:
-            response = {'status': 'Error', 'mensagem':'Nome não encontrado'}
+            response = {'status': False}
             
         return response
     
@@ -235,6 +237,7 @@ class Lista_salas(Resource):
             sala = Salas(nome=dados['nome'], senha=dados['senha'])
             sala.save()
             response = {
+                    'status':True,
                     'nome' : sala.nome,
                     'senha' : sala.senha,
                     'id' : sala.id
@@ -291,7 +294,8 @@ class Doenca(Resource):
 class Lista_doencas(Resource):
     def get(self):
         doencas = Doencas.query.all()
-        response = [{'id':i.id, 'nome':i.nome, 'tipo':i.tipo, 'agente':i.agente, 'sintomas':[{'nome':s.nome} for s in i.sintomas], 'transmicao':[{'nome':s.nome} for s in i.transmicao], 'prevencao':[{'nome':s.nome} for s in i.prevencao]} for i in doencas]
+        res = [{'id':i.id, 'nome':i.nome, 'tipo':i.tipo, 'agente':i.agente, 'sintomas':[{'nome':s.nome} for s in i.sintomas], 'transmicao':[{'nome':s.nome} for s in i.transmicao], 'prevencao':[{'nome':s.nome} for s in i.prevencao]} for i in doencas]
+        response = {'doencas': res}
         return response
     
 
@@ -305,25 +309,43 @@ class Lista_doencas(Resource):
 
 
 class Lista_sessoes(Resource):
-    def get(self):
-        doencas = Doencas.query.all()
+    def post(self):
         dados = request.json
-        shuffle(doencas)
-        doenca = doencas[:dados['doencas']]
+        sessao = Sessao.query.all()
+        now = datetime.now()
+        current_time = now.strftime("%H")
+        today = date.today()
+
+
 
         salaCheck = Salas.query.filter_by(nome=dados['nome']).first()
-        
-        responSala = {'id':salaCheck.id, 'nome':salaCheck.nome, 'senha':salaCheck.senha}
-        responDoenca = [{'id':i.id, 'nome':i.nome, 'tipo':i.tipo, 'agente':i.agente,'sintomas':[{'nome':s.nome} for s in i.sintomas], 'transmicao':[{'nome':s.nome} for s in i.transmicao], 'prevencao':[{'nome':s.nome} for s in i.prevencao] } for i in doenca]
-        items = randrange(1000, 99999)
-        item = randrange(1000, 99999)
-        id = items + item - salaCheck.id
+        responSala = {'nome':salaCheck.nome, 'senha':salaCheck.senha}
 
-        if salaCheck.senha == dados['senha']:
-                response = {'status':True, 'id':id,'sala':responSala,'doencas':responDoenca}
-        else:
+        codigo = str(today.day)+str(today.month)+str(today.year)+str(current_time)+str(salaCheck.id)
+        
+        doenca = Doencas.query.all()
+        responDoenca = [{'id':i.id, 'nome':i.nome, 'tipo':i.tipo, 'agente':i.agente,'sintomas':[{'nome':s.nome} for s in i.sintomas], 'transmicao':[{'nome':s.nome} for s in i.transmicao], 'prevencao':[{'nome':s.nome} for s in i.prevencao] } for i in doenca]
+
+
+        sessaoCheck = Sessao.query.filter_by(id_sessao=codigo).first()
+        
+
+
+        try:
+            response = {'status':True, 'id':sessaoCheck.id_sessao,'sala':responSala, 'doencas':responDoenca}
+            
+        except AttributeError:
+            
+
+            if salaCheck.senha == dados['senha']:
+                sessao = Sessao(id_sessao=codigo)
+                sessao.save()
+                response = {'status':True, 'id':sessao.id_sessao,'sala':responSala, 'doencas':responDoenca}
+            else:
                 response = {'status':False}                
         return response
+
+
 
 
 class Jogador(Resource):
