@@ -353,8 +353,8 @@ class Doenca(Resource):
 class Lista_doencas(Resource):
     def get(self):
         doencas = Doencas.query.all()
-        res = [{'id':i.id, 'nome':i.nome, 'tipo':i.tipo, 'agente':i.agente, 'sintomas':[{'nome':s.nome} for s in i.sintomas], 'transmicao':[{'nome':s.nome} for s in i.transmicao], 'prevencao':[{'nome':s.nome} for s in i.prevencao]} for i in doencas]
-        response = {'doencas': res}
+        response = [{'id':i.id, 'nome':i.nome, 'tipo':i.tipo, 'agente':i.agente, 'sintomas':[{'nome':s.nome} for s in i.sintomas], 'transmicao':[{'nome':s.nome} for s in i.transmicao], 'prevencao':[{'nome':s.nome} for s in i.prevencao]} for i in doencas]
+        
         return response
     
 
@@ -375,7 +375,7 @@ class Lista_sessoes(Resource):
         doenca = Doencas.query.all()
 
         shuffle(doenca)
-        responDoenca = [{'id':i.id, 'nome':i.nome} for i in doenca]
+        responDoenca = [{'nome':i.nome} for i in doenca]
 
         responseSessao = {'id_sessao': sessao.id_sessao, 'rodada':sessao.rodada}
         
@@ -398,7 +398,7 @@ class Lista_sessoes(Resource):
         doenca = Doencas.query.all()
 
         shuffle(doenca)
-        responDoenca = [{'id':i.id, 'nome':i.nome} for i in doenca]
+        responDoenca = [{'nome':i.nome} for i in doenca]
 
 
         
