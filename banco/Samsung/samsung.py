@@ -431,6 +431,11 @@ class Lista_sessoes(Resource):
         doenca = Doencas.query.filter_by(nome=dados['doenca']).first()
         aux = dados['dica']
 
+        if dados['rodada'] != sessao.rodada:
+            dicass = Dica.query.filter_by(sessao=dados['id_sessao']).all()
+            for item in dicass:
+                item.delete()
+
         if 'dica' in dados:
             dic = Dica(sessao=sessao.id_sessao,nome=dados['dica'])
             dic.save()
@@ -643,6 +648,9 @@ class Encerra_jogadores(Resource):
             
             sessao = Sessao.query.filter_by(id_sessao=dados['id_sessao']).first()
             try:
+                dicass = Dica.query.filter_by(sessao=dados['id_sessao']).all()
+                for item in dicass:
+                    item.delete()
                 sessao.delete()
 
             except AttributeError:
