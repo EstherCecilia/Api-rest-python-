@@ -12,9 +12,8 @@ api = Api(app)
 
 
 class SintomaPorDoencas(Resource):
-    def get(self):
-        dados =request.json
-        doenca = Doencas.query.filter_by(nome=dados['nome']).first()
+    def get(self, nome):
+        doenca = Doencas.query.filter_by(nome=nome).first()
         
         try:
             response = {'sintomas':[{'nome':s.nome} for s in doenca.sintomas]}
@@ -85,9 +84,8 @@ class Lista_sintomas(Resource):
 
 
 class TransmicaoPorDoencas(Resource):
-    def get(self):
-        dados =request.json
-        doenca = Doencas.query.filter_by(nome=dados['nome']).first()
+    def get(self, nome):
+        doenca = Doencas.query.filter_by(nome=nome).first()
         
         try:
             response = {'transmicao':[{'nome':s.nome} for s in doenca.transmicao]}
@@ -160,9 +158,8 @@ class Lista_transmicaos(Resource):
 
 
 class PrevencaoPorDoencas(Resource):
-    def get(self):
-        dados =request.json
-        doenca = Doencas.query.filter_by(nome=dados['nome']).first()
+    def get(self, nome):
+        doenca = Doencas.query.filter_by(nome=nome).first()
         print(doenca.nome)
         
         try:
@@ -365,6 +362,26 @@ class Lista_doencas(Resource):
         doenca.save()
         return "Doença inserida com sucesso!"
         
+class Lista_sessao(Resource):
+    def get(self, id):
+
+        sessao = Sessao.query.filter_by(id_sessao=id).first()
+        doenca = Doencas.query.all()
+
+        shuffle(doenca)
+        responDoenca = [{'nome':i.nome} for i in doenca]
+
+        responseSessao = {'id_sessao': sessao.id_sessao, 'rodada':sessao.rodada}
+        
+        try:
+           response = {'status':True, 'sessao':responseSessao,'dicas':[{'nome':d.nome} for d in sessao.dicas], 'doencasSelecionadas':[{'nome':d.nome} for d in sessao.doencas], 'doencas':responDoenca}
+                          
+  
+        except AttributeError:
+            response = {'status':False}
+
+            
+        return response
 
 
 class Lista_sessoes(Resource):
@@ -429,16 +446,39 @@ class Lista_sessoes(Resource):
         dados = request.json
         sessao = Sessao.query.filter_by(id_sessao=dados['id_sessao']).first()
         doenca = Doencas.query.filter_by(nome=dados['doenca']).first()
-        aux = dados['dica']
+        aux = dados['dicas']
 
         if dados['rodada'] != sessao.rodada:
             dicass = Dica.query.filter_by(sessao=dados['id_sessao']).all()
             for item in dicass:
                 item.delete()
 
-        if 'dica' in dados:
-            dic = Dica(sessao=sessao.id_sessao,nome=dados['dica'])
+        if 'dicas' in dados:
+            dic = Dica(sessao=sessao.id_sessao)
             dic.save()
+            if 'sintoma' in dados['dicas']:
+                sintoma = Sintomas.query.filter_by(nome=dados['dicas']['sintoma']).first()
+                try:
+                    dic.sintoma.append(sintoma)
+                    dic.save()
+                except AttributeError:
+                    print("Error")
+            if 'prevencao' in dados['dicas']:
+                prevencao = Prevencoes.query.filter_by(nome=dados['dicas']['prevencao']).first()
+                try:
+                    dic.prevencao.append(prevencao)
+                    dic.save()
+                except AttributeError:
+                    print("Error")
+
+            if 'transmicao' in dados['dicas']:
+                transmicao = Transmicaos.query.filter_by(nome=dados['dicas']['transmicao']).first()
+                try:
+                    dic.transmicao.append(transmicao)
+                    dic.save()
+                except AttributeError:
+                    print("Error")
+
             
         try:
             sessao.rodada = dados['rodada']
@@ -448,7 +488,12 @@ class Lista_sessoes(Resource):
             sessao.dicas.append(dic)
             sessao.save()
             try:
-                reponseDica = [{'nome':d.nome} for d in sessao.dicas]
+                print(sessao.dicas)
+                sintomas = [{"sintoma":[{"nome":s.nome} for s in d.sintoma]} for d in sessao.dicas]
+                prevencoes = [{"prevencao":[{"nome":p.nome} for p in d.prevencao]} for d in sessao.dicas]
+                transmicoes = [{"transmicao":[{"nome":t.nome} for t in d.transmicao]} for d in sessao.dicas]
+                reponseDica = {'sintomas':sintomas, 'transmicoes':transmicoes, 'prevencoes':prevencoes}
+                
             except AttributeError:
                 reponseDica = []
 
@@ -682,15 +727,15 @@ api.add_resource(Encerra_jogadores, '/jogador/encerra')
 
 api.add_resource(Sintoma, '/sintoma/<string:nome>')
 api.add_resource(Lista_sintomas, '/sintoma')
-api.add_resource(SintomaPorDoencas, '/sintomas')
+api.add_resource(SintomaPorDoencas, '/sintomas/<string:nome>')
 
 api.add_resource(Transmicao, '/transmicao/<string:nome>')
 api.add_resource(Lista_transmicaos, '/transmicao')
-api.add_resource(TransmicaoPorDoencas, '/transmicaos')
+api.add_resource(TransmicaoPorDoencas, '/transmicaos/<string:nome>')
 
 api.add_resource(Prevencao, '/prevencao/<string:nome>')
 api.add_resource(Lista_prevencoes, '/prevencao')
-api.add_resource(PrevencaoPorDoencas, '/prevencaos')
+api.add_resource(PrevencaoPorDoencas, '/prevencaos/<string:nome>')
 
 api.add_resource(Sala, '/sala/<string:nome>')
 api.add_resource(Lista_salas, '/sala')
@@ -698,6 +743,7 @@ api.add_resource(Lista_salas, '/sala')
 api.add_resource(Doenca, '/doenca/<string:nome>')
 api.add_resource(Lista_doencas, '/doenca')
 
+api.add_resource(Lista_sessao, '/sessao/<int:id>')
 api.add_resource(Lista_sessoes, '/sessao')
 
 if __name__ == '__main__':
