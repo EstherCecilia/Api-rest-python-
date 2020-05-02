@@ -46,8 +46,7 @@ class Sintoma(Resource):
         dados = request.json
         if 'nome' in dados:
             sintoma.nome = dados['nome']
-
-        sintoma.save()
+            sintoma.save()
 
         response = {
             'id' : sintoma.id,
@@ -120,8 +119,7 @@ class Transmicao(Resource):
         dados = request.json
         if 'nome' in dados:
             transmicao.nome = dados['nome']
-
-        transmicao.save()
+            transmicao.save()
 
         response = {
             'id' : transmicao.id,
@@ -193,8 +191,7 @@ class Prevencao(Resource):
         dados = request.json
         if 'nome' in dados:
             prevencao.nome = dados['nome']
-
-        prevencao.save()
+            prevencao.save()
 
         response = {
             'id' : prevencao.id,
