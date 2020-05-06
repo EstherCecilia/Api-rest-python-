@@ -407,8 +407,11 @@ class Lista_sessoes(Resource):
         sessao = Sessao.query.filter_by(id_sessao=dados['id_sessao']).first()
         doenca = Doencas.query.all()
 
-        shuffle(doenca)
-        responDoenca = [{'nome':i.nome} for i in doenca]
+        try:
+            responDoenca = [{'nome':i.nome} for i in doenca]    
+        except AttributeError:
+            responDoenca = []
+
 
         responseSessao = {'id_sessao': sessao.id_sessao, 'rodada':sessao.rodada}
         
@@ -441,7 +444,6 @@ class Lista_sessoes(Resource):
         sala = Salas.query.filter_by(nome=dados['nome']).first()
         doenca = Doencas.query.all()
 
-        shuffle(doenca)
         responDoenca = [{'nome':i.nome} for i in doenca]
 
 
@@ -462,6 +464,7 @@ class Lista_sessoes(Resource):
             if sala.senha == dados['senha']:
                 sessaoNova = Sessao(id_sessao=sala.id, rodada=0)
                 sessaoNova.save()
+                sessaoNova.doencas = []
                 response = {'status':True, 'id_sessao':sessaoNova.id_sessao,'sala':sala.nome, 'doencas':responDoenca}
             else:
                 response = {'status':False}   
