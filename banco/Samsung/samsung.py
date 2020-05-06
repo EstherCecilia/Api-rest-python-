@@ -518,7 +518,7 @@ class Lista_sessoes(Resource):
             
             if 'dicas' in dados:
                 sessao.dicas.append(dic)
-            sessao.save()
+                sessao.save()
             try:
                 print(sessao.dicas)
                 sintomas = [{"sintoma":[{"nome":s.nome} for s in d.sintoma]} for d in sessao.dicas]
@@ -530,6 +530,7 @@ class Lista_sessoes(Resource):
             except AttributeError:
                 reponseDica = []
 
+                
             response = {'status':True, 'id_sessao':sessao.id_sessao,'dicas':reponseDica, 'rodada':sessao.rodada,'doencasSelecionadas':[{'nome':d.nome} for d in sessao.doencas]}
 
 
