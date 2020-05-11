@@ -25,18 +25,18 @@ conecteds = Table('conecteds',Base.metadata,
                Column('id_transmicao', Integer, ForeignKey('transmicaos.id'))
     )
 
-conectedSintoma = Table('conectedSintoma',Base.metadata, 
-               Column('id_dica', Integer, ForeignKey('dicas.id')),
+conectedSintomaSessaos = Table('conectedSintomaSessaos',Base.metadata, 
+               Column('id_sessao', Integer, ForeignKey('dicas.id')),
                Column('id_sintoma', Integer, ForeignKey('sintomas.id'))
     )
 
-conectedTransmicao = Table('conectedTransmicao',Base.metadata, 
-               Column('id_dica', Integer, ForeignKey('dicas.id')),
+conectedTransmicaoSessaos = Table('conectedTransmicaoSessaos',Base.metadata, 
+               Column('id_sessao', Integer, ForeignKey('dicas.id')),
                Column('id_transmicao', Integer, ForeignKey('transmicaos.id'))
     )
 
-conectedPrevencao = Table('conectedPrevencao',Base.metadata, 
-               Column('id_dica', Integer, ForeignKey('dicas.id')),
+conectedPrevencaoSessaos = Table('conectedPrevencaoSessaos',Base.metadata, 
+               Column('id_sessao', Integer, ForeignKey('dicas.id')),
                Column('id_prevencao', Integer, ForeignKey('prevencoes.id'))
     )
 
@@ -47,10 +47,39 @@ sessaoconect = Table('sessaoconect',Base.metadata,
                Column('id_doenca', Integer, ForeignKey('doencas.id'))
     )
 
-sessaoconectdica = Table('sessaoconectdica',Base.metadata, 
-               Column('id_sessao', Integer, ForeignKey('sessoes.id')),
-               Column('id_dica', Integer, ForeignKey('dicas.id'))
-    )
+
+class Dicas(Base):
+    __tablename__='dicas'
+    id = Column(Integer, primary_key=True)
+    id_sessao = Column(Integer())
+    sintoma = relationship('Sintomas', secondary=conectedSintomaSessaos, cascade='all,delete-orphan', single_parent=True, backref=backref('conectedSintomasSessaos', lazy='dynamic', cascade="all"))
+    prevencao = relationship("Prevencoes", secondary=conectedPrevencaoSessaos, cascade='all,delete-orphan', single_parent=True, backref=backref('conectedPrevencaosSessaos', lazy='dynamic', cascade="all"))
+    transmicao = relationship("Transmicaos", secondary=conectedTransmicaoSessaos, cascade='all,delete-orphan', single_parent=True,backref=backref('conectedTransmicaosSessaos', lazy='dynamic', cascade="all"))
+    
+    def __repr__(self):
+        return '"{}"'.format(self.id)
+
+    def finaliza():
+        Sessao.__table__.drop(engine)
+        Sessao.__table__.create(engine)
+
+
+    def commit(self):
+        db_session.commit()
+        
+    def save(self):
+        db_session.add(self)
+        try:
+            db_session.commit()
+        except:
+            db_session.rollback()
+            raise
+        
+    
+    def delete(self):
+        db_session.delete(self)
+        db_session.commit()
+
 
 class Transmicaos(Base):
     __tablename__='transmicaos'
@@ -135,31 +164,6 @@ class Doencas(Base):
 
 
 
-class Dica(Base):
-    __tablename__='dicas'
-    id = Column(Integer, primary_key=True)
-    sintoma = relationship('Sintomas', secondary=conectedSintoma, backref=backref('conectedSintomas', lazy='dynamic'))
-    prevencao = relationship("Prevencoes", secondary=conectedPrevencao, backref=backref('conectedPrevencaos', lazy='dynamic'))
-    transmicao = relationship("Transmicaos", secondary=conectedTransmicao, backref=backref('conectedTransmicaos', lazy='dynamic'))
-    sessao = Column(Integer())
-    
-
-    
-    def __repr__(self):
-        return '<Dica: {}>'.format(self.id)
-
-    def finaliza():
-        Dica.__table__.drop(engine)
-        Dica.__table__.create(engine)
-
-
-    def save(self):
-        db_session.add(self)
-        db_session.commit()
-
-    def delete(self):
-        db_session.delete(self)
-        db_session.commit()
 
         
 
@@ -222,11 +226,8 @@ class Sessao(Base):
     id = Column(Integer, primary_key=True)
     id_sessao = Column(Integer())
     rodada = Column(Integer())
-    dicas = relationship("Dica", secondary=sessaoconectdica, backref=backref('sessaoconectdicas', lazy='dynamic'))
-    doencas = relationship("Doencas", secondary=sessaoconect, backref=backref('sessaoconects', lazy='dynamic'))
+    doencas = relationship("Doencas", secondary=sessaoconect, cascade='all,delete-orphan', single_parent=True, backref=backref('sessaoconects', lazy='dynamic', cascade="all"))
     
-
-
     def __repr__(self):
         return '<Sessao: {}>'.format(self.id_sessao)
 
@@ -236,10 +237,16 @@ class Sessao(Base):
         Sessao.__table__.create(engine)
 
 
+
     def save(self):
         db_session.add(self)
-        db_session.commit()
-
+        try:
+            db_session.commit()
+        except:
+            db_session.rollback()
+            raise
+        
+    
     def delete(self):
         db_session.delete(self)
         db_session.commit()
@@ -253,5 +260,6 @@ def init_db():
     Base.metadata.create_all(bind=engine)
 
 if __name__ == '__main__':
-
     init_db()
+
+    

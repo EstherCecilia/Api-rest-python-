@@ -373,24 +373,27 @@ class Lista_sessao(Resource):
         sessao = Sessao.query.filter_by(id_sessao=id).first()
         doenca = Doencas.query.all()
 
-        shuffle(doenca)
-        responDoenca = [{'nome':i.nome} for i in doenca]
+        try:
+            responDoenca = [{'nome':i.nome} for i in doenca]
+        except AttributeError:
+            responDoenca = []
 
         
         try:
-            print(sessao.dicas)
-            sintomas = [{"sintoma":[{"nome":s.nome} for s in d.sintoma]} for d in sessao.dicas]
-            prevencoes = [{"prevencao":[{"nome":p.nome} for p in d.prevencao]} for d in sessao.dicas]
-            transmicoes = [{"transmicao":[{"nome":t.nome} for t in d.transmicao]} for d in sessao.dicas]
-                
-            reponseDica = [{"sintomas":[{"nome":s.nome} for s in d.sintoma], "prevencoes":[{"nome":p.nome} for p in d.prevencao], "transmicoes":[{"nome":t.nome} for t in d.transmicao]} for d in sessao.dicas]
-                
+            dica = Dicas.query.filter_by(id_sessao=id).first()
+            reponseDica = {'sintomas':[{'nome':s.nome} for s in dica.sintoma], 'transmicao':[{'nome':s.nome} for s in dica.transmicao], 'prevencao':[{'nome':s.nome} for s in dica.prevencao]}
         except AttributeError:
             reponseDica = []
         
         try:
+            try:
+                tamanho = len(sessao.doencas)
+                doenc = sessao.doencas[tamanho-1].nome
+            except IndexError:
+                doenc = ""
+                
             responseSessao = {'id_sessao': sessao.id_sessao, 'rodada':sessao.rodada}
-            response = {'status':True, 'sessao':responseSessao,'dicas':reponseDica, 'doencasSelecionadas':[{'nome':d.nome} for d in sessao.doencas], 'doencas':responDoenca}
+            response = {'status':True, 'sessao':responseSessao,'dicas':reponseDica, 'ultimaDoenca': doenc,'doencasSelecionadas':[{'nome':d.nome} for d in sessao.doencas], 'doencas':responDoenca}
                           
   
         except AttributeError:
@@ -415,14 +418,9 @@ class Lista_sessoes(Resource):
 
         responseSessao = {'id_sessao': sessao.id_sessao, 'rodada':sessao.rodada}
         
+        dica = Dicas.query.filter_by(id_sessao=dados['id_sessao']).first()
         try:
-            print(sessao.dicas)
-            sintomas = [{"sintoma":[{"nome":s.nome} for s in d.sintoma]} for d in sessao.dicas]
-            prevencoes = [{"prevencao":[{"nome":p.nome} for p in d.prevencao]} for d in sessao.dicas]
-            transmicoes = [{"transmicao":[{"nome":t.nome} for t in d.transmicao]} for d in sessao.dicas]
-                
-            reponseDica = [{"sintomas":[{"nome":s.nome} for s in d.sintoma], "prevencoes":[{"nome":p.nome} for p in d.prevencao], "transmicoes":[{"nome":t.nome} for t in d.transmicao]} for d in sessao.dicas]
-                
+            reponseDica = {'sintomas':[{'nome':s.nome} for s in dica.sintoma], 'transmicao':[{'nome':s.nome} for s in dica.transmicao], 'prevencao':[{'nome':s.nome} for s in dica.prevencao]}
         except AttributeError:
             reponseDica = []
         
@@ -452,19 +450,16 @@ class Lista_sessoes(Resource):
         
         
         try:
-            
-            if sala.senha == dados['senha']:
-                response = {'status':False, 'id_sessao':sessao.id_sessao,'sala':sala.nome, 'doencas':responDoenca}
-            else:
-                response = {'status':False}   
+            response = {'status':False, 'id_sessao':sessao.id_sessao,'sala':sala.nome, 'doencas':responDoenca}
                  
-  
         except AttributeError:
             
             if sala.senha == dados['senha']:
-                sessaoNova = Sessao(id_sessao=sala.id, rodada=0)
+                sessaoNova = Sessao(id_sessao=sala.id, rodada=0,  doencas=[])
                 sessaoNova.save()
-                sessaoNova.doencas = []
+                dica = Dicas(id_sessao=sessaoNova.id_sessao, sintoma=[], prevencao=[], transmicao=[])
+                dica.save()
+                print(dica.id)
                 response = {'status':True, 'id_sessao':sessaoNova.id_sessao,'sala':sala.nome, 'doencas':responDoenca}
             else:
                 response = {'status':False}   
@@ -476,36 +471,48 @@ class Lista_sessoes(Resource):
         dados = request.json
         sessao = Sessao.query.filter_by(id_sessao=dados['id_sessao']).first()
         doenca = Doencas.query.filter_by(nome=dados['doenca']).first()
-        aux = dados['rodada'] - 1
-        
-        if aux != sessao.rodada:
-            dicass = Dica.query.filter_by(sessao=dados['id_sessao']).all()
-            for item in dicass:
-                item.delete()
+        dica = Dicas.query.filter_by(id_sessao=dados['id_sessao']).first()
 
+        print(sessao.rodada)
+        
+        if dados['rodada'] != sessao.rodada:
+            print(dica.id)
+            dics = db_session.query(conectedSintomaSessaos).filter(conectedSintomaSessaos.c.id_sessao == dica.id)
+            dics.delete(synchronize_session=False)
+            db_session.commit()
+            
+            dics2 = db_session.query(conectedTransmicaoSessaos).filter(conectedTransmicaoSessaos.c.id_sessao == dica.id)
+            dics2.delete(synchronize_session=False)
+            db_session.commit()
+            
+            dics3 = db_session.query(conectedPrevencaoSessaos).filter(conectedPrevencaoSessaos.c.id_sessao == dica.id)
+            dics3.delete(synchronize_session=False)
+            db_session.commit()
+            
+            
+                           
         if 'dicas' in dados:
-            dic = Dica(sessao=sessao.id_sessao)
-            dic.save()
             if 'sintoma' in dados['dicas']:
                 sintoma = Sintomas.query.filter_by(nome=dados['dicas']['sintoma']).first()
                 try:
-                    dic.sintoma.append(sintoma)
-                    dic.save()
+                    print(sintoma.nome)
+                    dica.sintoma.append(sintoma)
+                    dica.save()
                 except AttributeError:
                     print("Error")
             if 'prevencao' in dados['dicas']:
                 prevencao = Prevencoes.query.filter_by(nome=dados['dicas']['prevencao']).first()
                 try:
-                    dic.prevencao.append(prevencao)
-                    dic.save()
+                    dica.prevencao.append(prevencao)
+                    dica.save()
                 except AttributeError:
                     print("Error")
 
             if 'transmicao' in dados['dicas']:
                 transmicao = Transmicaos.query.filter_by(nome=dados['dicas']['transmicao']).first()
                 try:
-                    dic.transmicao.append(transmicao)
-                    dic.save()
+                    dica.transmicao.append(transmicao)
+                    dica.save()
                 except AttributeError:
                     print("Error")
 
@@ -513,25 +520,27 @@ class Lista_sessoes(Resource):
         try:
             sessao.rodada = dados['rodada']
             sessao.save()
+            
             sessao.doencas.append(doenca)
             sessao.save()
             
-            if 'dicas' in dados:
-                sessao.dicas.append(dic)
-                sessao.save()
             try:
-                print(sessao.dicas)
-                sintomas = [{"sintoma":[{"nome":s.nome} for s in d.sintoma]} for d in sessao.dicas]
-                prevencoes = [{"prevencao":[{"nome":p.nome} for p in d.prevencao]} for d in sessao.dicas]
-                transmicoes = [{"transmicao":[{"nome":t.nome} for t in d.transmicao]} for d in sessao.dicas]
-                
-                reponseDica = [{"sintomas":[{"nome":s.nome} for s in d.sintoma], "prevencoes":[{"nome":p.nome} for p in d.prevencao], "transmicoes":[{"nome":t.nome} for t in d.transmicao]} for d in sessao.dicas]
-                
+                sintomas = [{'nome':s.nome} for s in dica.sintoma]
+                transmissoes = [{'nome':s.nome} for s in dica.transmicao]
+                prevencoes = [{'nome':s.nome} for s in dica.prevencao]
+                reponseDica = {'sintomas':sintomas, 'transmicao': transmissoes, 'prevencao': prevencoes}
             except AttributeError:
                 reponseDica = []
 
+            try:
                 
-            response = {'status':True, 'id_sessao':sessao.id_sessao,'dicas':reponseDica, 'rodada':sessao.rodada,'doencasSelecionadas':[{'nome':d.nome} for d in sessao.doencas]}
+                reponseSelecionadas = [{'nome':d.nome} for d in sessao.doencas]
+            except AttributeError:
+                reponseSelecionadas = []
+
+            tamanho = len(sessao.doencas)
+            doenc = sessao.doencas[tamanho-1].nome
+            response = {'status':True, 'id_sessao':sessao.id_sessao,'dicas':reponseDica, 'ultimaDoenca': doenc, 'rodada':sessao.rodada,'doencasSelecionadas':reponseSelecionadas}
 
 
         except AttributeError:
@@ -545,7 +554,6 @@ class Lista_sessoes(Resource):
 
 class Listar_Ranking(Resource):
     def get(self, id):
-        jogador = Ranking.query.filter_by(id_sessao=id).all()
         try:
             jogador = Ranking.query.filter_by(id_sessao=id).all()
             jogador_ordenado = sorted(jogador, key = Ranking.get_pontuacao, reverse=True)
@@ -554,7 +562,7 @@ class Listar_Ranking(Resource):
             jogadorDica = Ranking.query.filter_by(id_sessao=id).filter_by(adivinhador=False).first()
             responseDicas = {'nome':jogadorDica.nome}
 
-            response = {'darDica':responseDicas, 'jogadores':responseAdivinhador}
+            response = {'status': True, 'darDica':responseDicas, 'jogadores':responseAdivinhador}
 
         except AttributeError:
             response = {'status': False}
@@ -622,6 +630,13 @@ class Lista_jogadores(Resource):
             pontuac.rodada = dados['rodada']
             pontuac.ordem = rodada + 1
             ponti = (1/(pontuac.ordem))*10
+            
+            if dados['fim'] == True :
+                ponti = 0
+            else:
+                ponti = (1/(pontuac.ordem))*10
+
+
             ponto = pontuac.pontuacao + ponti
             pontuac.pontuacao = ponto
             pontuac.save()
@@ -675,13 +690,15 @@ class Lista_jogadores(Resource):
 
         if check >= 1:
             response = {
-                'status':"Sessão já foi iniciada"    
+                'status':False,
+                'mensagem':"Sessao já foi iniciada"    
             }
         else:
             try:
                 pontuac.nome = dados['nome']
                 response = {
-                    'status':False
+                'status':False,
+                'mensagem':"Esse nome ja existe"
                 
 
                 }
@@ -725,11 +742,8 @@ class Encerra_jogadores(Resource):
             response = {'status': True}
 
             
-            sessao = Sessao.query.filter_by(id_sessao=dados['id_sessao']).first()
+            sessao = Sessao.query.filter_by(id_sessao=dados['id_sessao']).all()
             try:
-                dicass = Dica.query.filter_by(sessao=dados['id_sessao']).all()
-                for item in dicass:
-                    item.delete()
                 sessao.delete()
 
             except AttributeError:
