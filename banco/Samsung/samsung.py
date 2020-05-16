@@ -268,6 +268,27 @@ class Sala(Resource):
         return {'status': 'sucesso', 'mensagem': 'Registro excluido'}
 
 
+class SetStart(Resource):
+    def get(self, id):
+        sala = Salas.query.filter_by(id=id).first()
+        try:
+            sala.partida = True
+            sala.save()
+            response = {'status':True}
+        except AttributeError:
+            response = {'status':False}
+        return response
+
+class GetStart(Resource):
+    def get(self, id):
+        sala = Salas.query.filter_by(id=id).first()
+        try:
+            response = {'status':sala.partida}
+        except AttributeError:
+            response = {'status':False}
+        return response
+    
+
 class Lista_salas(Resource):
     def get(self):
         sala = Salas.query.all()
@@ -287,7 +308,7 @@ class Lista_salas(Resource):
             }
 
         except AttributeError:
-            sala = Salas(nome=dados['nome'], senha=dados['senha'])
+            sala = Salas(nome=dados['nome'], senha=dados['senha'], partida=False)
             sala.save()
             response = {
                     'status':True,
@@ -404,38 +425,6 @@ class Lista_sessao(Resource):
 
 
 class Lista_sessoes(Resource):
-    def get(self):
-        dados = request.json
-
-        sessao = Sessao.query.filter_by(id_sessao=dados['id_sessao']).first()
-        doenca = Doencas.query.all()
-
-        try:
-            responDoenca = [{'nome':i.nome} for i in doenca]    
-        except AttributeError:
-            responDoenca = []
-
-
-        responseSessao = {'id_sessao': sessao.id_sessao, 'rodada':sessao.rodada}
-        
-        dica = Dicas.query.filter_by(id_sessao=dados['id_sessao']).first()
-        try:
-            reponseDica = {'sintomas':[{'nome':s.nome} for s in dica.sintoma], 'transmicao':[{'nome':s.nome} for s in dica.transmicao], 'prevencao':[{'nome':s.nome} for s in dica.prevencao]}
-        except AttributeError:
-            reponseDica = []
-        
-        try:
-           response = {'status':True, 'sessao':responseSessao,'dicas':reponseDica, 'doencasSelecionadas':[{'nome':d.nome} for d in sessao.doencas], 'doencas':responDoenca}
-                          
-  
-        except AttributeError:
-            response = {'status':False}
-
-            
-        return response
-
-
-    
     def post(self):
         dados = request.json
 
@@ -557,11 +546,16 @@ class Listar_Ranking(Resource):
         try:
             jogador = Ranking.query.filter_by(id_sessao=id).all()
             jogador_ordenado = sorted(jogador, key = Ranking.get_pontuacao, reverse=True)
-            responseAdivinhador = [{'nome':i.nome, 'pontuacao':i.pontuacao} for i in jogador_ordenado]
+            try:
+                responseAdivinhador = [{'nome':i.nome, 'pontuacao':i.pontuacao} for i in jogador_ordenado]
+            except AttributeError:
+                responseAdivinhador = [{'nome':"Saiu", 'pontuacao':0}]
 
             jogadorDica = Ranking.query.filter_by(id_sessao=id).filter_by(adivinhador=False).first()
-            responseDicas = {'nome':jogadorDica.nome}
-
+            try:
+                responseDicas = {'nome':jogadorDica.nome}
+            except AttributeError:
+                responseDicas = {'nome':"Saiu"}
             response = {'status': True, 'darDica':responseDicas, 'jogadores':responseAdivinhador}
 
         except AttributeError:
@@ -612,11 +606,13 @@ class Lista_jogadores(Resource):
 
         jogadorDica = Ranking.query.filter_by(id_sessao=dados['id_sessao']).filter_by(adivinhador=False).first()
 
-        responseDicas = {'nome':jogadorDica.nome}
-
+        try:
+            responseDicas = {'nome':jogadorDica.nome}
+        except AttributeError:
+            responseDicas = {'nome':""}
+            
         response = {'darDica':responseDicas, 'jogadores':responseAdivinhador}
         return response
-
 
     def put(self):
         dados = request.json
@@ -644,6 +640,8 @@ class Lista_jogadores(Resource):
 
             adivinhador.pontuacao = adivinhador.pontuacao + ponti*0.75
             adivinhador.save()
+            adivinhador.rodada = dados['rodada']
+            adivinhador.save()
 
             response = {
                 'status':True,
@@ -665,30 +663,35 @@ class Lista_jogadores(Resource):
             }
 
         x = len(Ranking.query.filter_by(rodada=dados['rodada']).filter_by(id_sessao=dados['id_sessao']).all())
-        y = len(Ranking.query.filter_by(id_sessao=dados['id_sessao']).all()) - 1
+        y = len(Ranking.query.filter_by(id_sessao=dados['id_sessao']).all()) 
         if y == x:
             adivinhador.adivinhador = True
             adivinhador.save()
             adivinhador.ordem = 300
             adivinhador.save()
-            jogadorVelho = Ranking.query.filter_by(id_sessao=dados['id_sessao']).filter_by(ordem=1).first()
-            jogadorVelho.adivinhador = False
-            jogadorVelho.save()
+
+            aux = Ranking.query.filter_by(id_sessao=dados['id_sessao']).filter(Ranking.ordem!=300).all()
+            try:
+                aux[0].adivinhador = False
+                aux[0].save()
+            except IndexError:
+                print("Error")
 
         
         
 
         return response
 
+
         
     def post(self):
         dados = request.json
         pontuac = Ranking.query.filter_by(id_sessao=dados['id_sessao']).filter_by(nome=dados['nome']).first()
 
+        sala = Salas.query.filter_by(id=dados['id_sessao']).first()
         
-        check = len(Ranking.query.filter_by(id_sessao=dados['id_sessao']).filter(Ranking.rodada != 0).all())
 
-        if check >= 1:
+        if sala.partida:
             response = {
                 'status':False,
                 'mensagem':"Sessao já foi iniciada"    
@@ -743,8 +746,12 @@ class Encerra_jogadores(Resource):
 
             
             sessao = Sessao.query.filter_by(id_sessao=dados['id_sessao']).all()
+            sala = Salas.query.filter_by(id=dados['id_sessao']).first()
+            
             try:
                 sessao.delete()
+                sala.partida = False
+                sala.save()
 
             except AttributeError:
                 print("Já foi excluido")
@@ -773,6 +780,8 @@ class Time(Resource):
 
 api.add_resource(Home, '/')
 api.add_resource(Time, '/time')
+api.add_resource(SetStart, '/setComecou/<int:id>')
+api.add_resource(GetStart, '/getComecou/<int:id>')
 
 api.add_resource(Listar_Ranking, '/ranking/<int:id>')
 api.add_resource(Jogador, '/jogador/<string:nome>/<int:id>')

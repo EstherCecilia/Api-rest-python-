@@ -96,6 +96,10 @@ class Transmicaos(Base):
     def delete(self):
         db_session.delete(self)
         db_session.commit()
+
+    def finaliza():
+        Transmicaos.__table__.drop(engine)
+        Transmicaos.__table__.create(engine)
         
 
 class Sintomas(Base):
@@ -113,6 +117,10 @@ class Sintomas(Base):
     def delete(self):
         db_session.delete(self)
         db_session.commit()
+
+    def finaliza():
+        Sintomas.__table__.drop(engine)
+        Sintomas.__table__.create(engine)
         
 
 class Prevencoes(Base):
@@ -131,7 +139,9 @@ class Prevencoes(Base):
         db_session.delete(self)
         db_session.commit()
 
-
+    def finaliza():
+        Prevencoes.__table__.drop(engine)
+        Prevencoes.__table__.create(engine)
 
 
 class Doencas(Base):
@@ -172,6 +182,7 @@ class Salas(Base):
     id = Column(Integer, primary_key=True)
     nome = Column(String(40))
     senha = Column(String(40))
+    partida = Column(Boolean())
     
 
 
@@ -181,6 +192,10 @@ class Salas(Base):
     def save(self):
         db_session.add(self)
         db_session.commit()
+
+    def finaliza():
+        Salas.__table__.drop(engine)
+        Salas.__table__.create(engine)
 
     def delete(self):
         db_session.delete(self)
